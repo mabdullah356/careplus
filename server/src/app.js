@@ -10,9 +10,11 @@ app.use(express.urlencoded({extended:true}));
 
 const userRoutes = require("./Routes/user.Route");
 const doctorRoutes = require("./Routes/doctorProfile.Route");
+const patientRoutes = require("./Routes/patientProfile.Route");
 
 app.use("/api/v1/users",userRoutes);
 app.use("/api/v1/doctor",doctorRoutes);
+app.use("/api/v1/patient",patientRoutes);
 
 
 module.exports = app;
