@@ -55,3 +55,15 @@ module.exports.login = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+module.exports.logout = async (req, res) => {
+  try {
+    res.cookie("token", "", {
+      maxAge: 0,
+    });
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
