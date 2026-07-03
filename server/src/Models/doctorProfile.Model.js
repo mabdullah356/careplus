@@ -10,12 +10,12 @@ const doctorProfileSchema = new mongoose.Schema(
     },
     specialty: {
       type: String,
-      required: [true, "Specialty is required"],
+    //   required: [true, "Specialty is required"],
       trim: true,
     },
     licenseNo: {
       type: String,
-      required: [true, "License number is required"],
+    //   required: [true, "License number is required"],
       unique: true,
       trim: true,
     },

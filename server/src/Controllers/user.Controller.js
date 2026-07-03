@@ -1,4 +1,7 @@
 const User = require("../Models/user.Model");
+const DoctorProfile = require("../Models/doctorProfile.Model");
+const PatientProfile = require("../Models/patientProfile.Model");
+
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../Utils/jwtToken");
 
@@ -10,7 +13,9 @@ module.exports.signup = async (req, res) => {
   }
 
   if (!["patient", "doctor"].includes(role)) {
-    return res.status(400).json({ message: "Role must be either patient or doctor" });
+    return res
+      .status(400)
+      .json({ message: "Role must be either patient or doctor" });
   }
 
   try {
@@ -21,11 +26,20 @@ module.exports.signup = async (req, res) => {
 
     const hashPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({ name, email, password: hashPassword, role });
-
+    const user = await User.create({
+      name,
+      email,
+      password: hashPassword,
+      role,
+    });
+    if (role === "doctor") {
+      await DoctorProfile.create({ userId: user._id });
+    } else {
+      await PatientProfile.create({ userId: user._id });
+    }
     return res.status(201).json({ message: "User created successfully" });
   } catch (error) {
-    console.error(error)
+    console.error(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
