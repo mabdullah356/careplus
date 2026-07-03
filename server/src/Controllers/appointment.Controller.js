@@ -49,3 +49,35 @@ module.exports.createAppointment = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+module.exports.getAppointments = async (req, res) => {
+  try {
+    let appointments;
+
+    if (req.user.role === "patient") {
+      const patientProfile = await PatientProfile.findOne({ userId: req.user.id });
+      if (!patientProfile) {
+        return res.status(404).json({ message: "Patient profile not found" });
+      }
+      appointments = await Appointment.find({ patientId: patientProfile._id })
+        .populate("doctorId")
+        .sort({ createdAt: -1 });
+    } else if (req.user.role === "doctor") {
+      const doctorProfile = await DoctorProfile.findOne({ userId: req.user.id });
+      if (!doctorProfile) {
+        return res.status(404).json({ message: "Doctor profile not found" });
+      }
+      appointments = await Appointment.find({ doctorId: doctorProfile._id })
+        .populate("patientId")
+        .sort({ createdAt: -1 });
+    } else {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    return res.status(200).json({ appointments });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
