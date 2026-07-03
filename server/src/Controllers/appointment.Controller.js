@@ -81,3 +81,32 @@ module.exports.getAppointments = async (req, res) => {
   }
 };
 
+module.exports.confirmAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const doctorProfile = await DoctorProfile.findOne({ userId: req.user.id });
+    if (!doctorProfile) {
+      return res.status(404).json({ message: "Doctor profile not found" });
+    }
+
+    const appointment = await Appointment.findOne({ _id: id, doctorId: doctorProfile._id });
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    if (appointment.status !== "pending") {
+      return res.status(400).json({ message: "Only pending appointments can be confirmed" });
+    }
+
+    appointment.status = "confirmed";
+    await appointment.save();
+
+    return res.status(200).json({ message: "Appointment confirmed", appointment });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
