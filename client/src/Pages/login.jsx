@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 
+const decodeToken = (token) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]))
+  } catch {
+    return {}
+  }
+}
+
 const Login = () => {
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '' })
@@ -37,10 +45,12 @@ const Login = () => {
         email: form.email.trim(),
         password: form.password,
       })
-      localStorage.setItem('token', res.data.token)
-      localStorage.setItem('user', JSON.stringify({ email: form.email.trim() }))
+      const token = res.data.token
+      const payload = decodeToken(token)
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify({ email: form.email.trim(), role: payload.role }))
       toast.success(res.data.message || 'Login successful!')
-      navigate('/')
+      navigate('/dashboard')
     } catch (err) {
       const msg = err.response?.data?.message || 'Something went wrong. Please try again.'
       setError(msg)
