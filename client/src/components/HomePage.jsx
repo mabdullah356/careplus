@@ -1,417 +1,532 @@
-import { CalendarCheck, CalendarX, Pill, ClipboardList, ShieldCheck, ArrowRight, Clock, Syringe, Package, AlertTriangle, Search, Building, Tag, FlaskConical, Eye, Archive, DollarSign } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  CalendarCheck, CalendarX, Pill, ClipboardList, ShieldCheck, ArrowRight, Clock, Syringe,
+  Package, AlertTriangle, Search, Building, Tag, FlaskConical, Eye, Archive, DollarSign,
+} from 'lucide-react'
+
+
+const RevealText = ({ children, className, delay = 0, as: Tag = 'span' }) => {
+  const words = children.split(' ')
+  return (
+    <Tag className={className}>
+      {words.map((word, i) => (
+        <span key={i} className="inline-block overflow-hidden">
+          <motion.span
+            className="inline-block"
+            initial={{ y: '100%' }}
+            whileInView={{ y: 0 }}
+            viewport={{ once: false, margin: '-40px' }}
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0, 1], delay: delay + i * 0.04 }}
+          >
+            {word}{i < words.length - 1 ? '\u00A0' : ''}
+          </motion.span>
+        </span>
+      ))}
+    </Tag>
+  )
+}
+
+
+const LetterReveal = ({ children, className, delay = 0 }) => {
+  const letters = children.split('')
+  return (
+    <span className={className}>
+      {letters.map((letter, i) => (
+        <motion.span
+          key={i}
+          className="inline-block"
+          initial={{ opacity: 0, y: 20, rotateZ: -8 }}
+          whileInView={{ opacity: 1, y: 0, rotateZ: 0 }}
+          viewport={{ once: false, margin: '-40px' }}
+          transition={{ duration: 0.3, ease: 'easeOut', delay: delay + i * 0.025 }}
+        >
+          {letter === ' ' ? '\u00A0' : letter}
+        </motion.span>
+      ))}
+    </span>
+  )
+}
+
+
+const slideIn = (dir = 'left', delay = 0) => ({
+  hidden: { opacity: 0, x: dir === 'left' ? -40 : 40 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: 'easeOut', delay } },
+})
+
+const fadeUp = (delay = 0) => ({
+  hidden: { opacity: 0, y: 35 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut', delay } },
+})
+
+const scaleIn = (delay = 0) => ({
+  hidden: { opacity: 0, scale: 0.88 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: 'easeOut', delay } },
+})
+
+
+function useInView(options) {
+  const [inView, setInView] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setInView(true)
+        else setInView(false)
+      },
+      { threshold: 0.3, ...options }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [ref, options])
+  return [ref, inView]
+}
+
+
+const CountUp = ({ end, suffix = '', duration = 2 }) => {
+  const [count, setCount] = useState(0)
+  const [ref, inView] = useInView({ once: false })
+  const counted = useRef(false)
+
+  useEffect(() => {
+    if (!inView || counted.current) return
+    counted.current = true
+    let start = 0
+    const step = Math.ceil(end / (duration * 60))
+    const timer = setInterval(() => {
+      start += step
+      if (start >= end) { setCount(end); clearInterval(timer) }
+      else setCount(start)
+    }, 16)
+    return () => clearInterval(timer)
+  }, [inView, end, duration])
+
+  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>
+}
+
+
+const heroStats = [
+  { icon: CalendarCheck, label: 'Used by 40+ clinics' },
+  { icon: ClipboardList, label: '12k appointments processed' },
+  { icon: ShieldCheck, label: '99.9% uptime' },
+]
+
+const patientFeatures = [
+  { icon: CalendarCheck, title: 'Book online', desc: 'See real-time availability and pick a slot that works for you.', dir: 'left' },
+  { icon: CalendarX, title: 'Cancel anytime', desc: 'Cancel or reschedule online and free up the slot for someone else.', dir: 'right' },
+  { icon: Syringe, title: 'View medicine history', desc: 'See prescribed medicines and past prescriptions in your profile.', dir: 'left' },
+  { icon: Clock, title: 'Appointment reminders', desc: 'Get notified before your visit so you never miss a checkup.', dir: 'right' },
+]
+
+const doctorFeatures = [
+  { icon: ClipboardList, title: 'Confirm requests', desc: 'Review and confirm bookings with one click. Patients notified instantly.', dir: 'left' },
+  { icon: CalendarX, title: 'Cancel & block slots', desc: 'Close time slots with automatic patient notification.', dir: 'right' },
+  { icon: ShieldCheck, title: 'Patient history', desc: 'View past visits, medicines, and medicare details before the patient arrives.', dir: 'left' },
+  { icon: Pill, title: 'Prescribe digitally', desc: 'Write prescriptions. Pharmacy and patient get copies automatically.', dir: 'right' },
+]
+
+const stats = [
+  { end: 40, suffix: '+', label: 'Clinics onboarded' },
+  { end: 12000, suffix: '+', label: 'Appointments processed' },
+  { end: 99, suffix: '.9%', label: 'Uptime' },
+  { end: 24, suffix: '/7', label: 'Support' },
+]
+
+const medGroups = [
+  {
+    icon: Package, title: 'Inventory & Stock',
+    items: [
+      { icon: Package, title: 'Live stock tracking', desc: 'Tracked with batch number, quantity, and supplier.' },
+      { icon: AlertTriangle, title: 'Low stock alerts', desc: 'Get notified before you run out.' },
+      { icon: Archive, title: 'Batch & expiry', desc: 'Expired stock flagged and blocked.' },
+      { icon: Building, title: 'Supplier management', desc: 'Contacts, price lists, purchase orders.' },
+    ],
+  },
+  {
+    icon: Tag, title: 'Medicine Types',
+    items: [
+      { icon: Pill, title: 'Tablets & Capsules', desc: 'Track by strength, dosage, package.' },
+      { icon: FlaskConical, title: 'Syrups & Liquids', desc: 'Volume, concentration, paediatric.' },
+      { icon: Syringe, title: 'Injections & IV', desc: 'Vials, ampoules, cold chain flags.' },
+      { icon: Eye, title: 'Topicals & Other', desc: 'Creams, drops, inhalers, patches.' },
+    ],
+  },
+  {
+    icon: ClipboardList, title: 'Prescriptions & Safety',
+    items: [
+      { icon: ClipboardList, title: 'Digital prescriptions', desc: 'Dosage, duration, live queue.' },
+      { icon: Search, title: 'Medicine search', desc: 'Search by name, brand, category.' },
+      { icon: AlertTriangle, title: 'Interaction warnings', desc: 'Flag drug interactions & allergies.' },
+      { icon: Tag, title: 'Price & margins', desc: 'MRP, purchase, retail — auto-calculated.' },
+    ],
+  },
+  {
+    icon: DollarSign, title: 'Medicare & Billing',
+    items: [
+      { icon: ShieldCheck, title: 'Coverage types', desc: 'Cash, insurance, Ayushman Bharat, CGHS.' },
+      { icon: CalendarCheck, title: 'Visit-linked billing', desc: 'Links to consultation & diagnostics.' },
+      { icon: DollarSign, title: 'Claim tracking', desc: 'Itemised bills for claims.' },
+      { icon: Archive, title: 'Reports & audit', desc: 'Consumption, expiry, revenue breakdowns.' },
+    ],
+  },
+]
 
 const HomePage = () => {
+  const heroRef = useRef(null)
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.12])
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.2])
+  const heroY = useTransform(scrollYProgress, [0, 0.6], [0, 70])
+
   return (
     <main>
-      {/* Hero */}
-      <section className="bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-6 py-28 md:py-36">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-[1.1] tracking-tight">
-            Your clinic. Less paperwork, more care.
-          </h1>
-          <p className="mt-6 text-lg md:text-xl text-gray-500 max-w-2xl leading-relaxed">
-            CarePlus handles appointments, confirmations, medicine tracking, and medicare billing &mdash; so your team
-            spends time with patients, not on spreadsheets.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-4">
-            <Link
-              to="/signup"
-              className="inline-flex items-center gap-2 px-6 py-3.5 bg-rose-600 text-white font-semibold rounded-xl hover:bg-rose-700 transition-colors shadow-sm"
+
+      <section ref={heroRef} className="relative h-screen flex items-center overflow-hidden">
+        <motion.div
+          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?q=80&w=2091&auto=format&fit=crop')] bg-cover bg-center"
+          style={{ scale: bgScale }}
+        />
+        <div className="absolute inset-0 bg-black/55" />
+        <motion.div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" style={{ opacity: overlayOpacity }} />
+
+        <div className="relative z-10 max-w-5xl mx-auto px-6 w-full">
+          <motion.div style={{ y: heroY }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
             >
-              Start free trial
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 px-6 py-3.5 border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors"
+              <Badge variant="outline" className="text-rose-300 border-rose-700 bg-rose-950/40 mb-5">
+                Clinic Management Platform
+              </Badge>
+            </motion.div>
+
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.05] tracking-tight">
+              <RevealText>Your clinic.</RevealText>
+              <br />
+              <span className="text-rose-300">
+                <RevealText delay={0.3}>Less paperwork,</RevealText>
+              </span>
+              <br />
+              <RevealText delay={0.6}>more care.</RevealText>
+            </h1>
+
+            <motion.p
+              className="mt-6 text-lg md:text-xl text-gray-300 max-w-xl leading-relaxed"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.9 }}
             >
-              Sign in
-            </Link>
-          </div>
-          <div className="mt-16 flex flex-wrap gap-x-10 gap-y-4 text-sm text-gray-400">
-            <span className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
-              Used by 40+ clinics
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
-              12k appointments processed
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
-              99.9% uptime
-            </span>
-          </div>
+              Appointments, medicine tracking, prescriptions, and medicare billing &mdash; so your team
+              spends time with patients, not on spreadsheets.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            className="mt-10 flex flex-wrap gap-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.2 }}
+          >
+            <Button asChild size="lg" className="bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/25">
+              <Link to="/signup">
+                Start free trial
+                <ArrowRight className="ml-1" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="border-white/20  hover:bg-white/10">
+              <Link to="/login">Sign in</Link>
+            </Button>
+          </motion.div>
+
+          <motion.div
+            className="mt-16 flex flex-wrap gap-x-8 gap-y-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 1.5 }}
+          >
+            {heroStats.map((s, i) => (
+              <motion.span
+                key={s.label}
+                className="flex items-center gap-2 text-sm text-gray-400"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 1.6 + i * 0.12 }}
+              >
+                <s.icon className="w-4 h-4 text-rose-400" />
+                {s.label}
+              </motion.span>
+            ))}
+          </motion.div>
         </div>
+
+
+        <motion.div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2, duration: 0.6 }}
+        >
+          <motion.div
+            className="w-5 h-8 border-2 border-white/30 rounded-full flex justify-center"
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <motion.div
+              className="w-1 h-2 bg-white/60 rounded-full mt-1.5"
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* For Patients */}
-      <section className="bg-gray-50 border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-6 py-24 md:py-28">
-          <div className="max-w-xl">
-            <span className="text-sm font-semibold text-rose-600 uppercase tracking-widest">Patients</span>
-            <h2 className="mt-3 text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
-              Book, cancel, stay informed.
+
+      <section className="bg-white border-b border-border">
+        <div className="max-w-5xl mx-auto px-6 py-28 md:py-36">
+          <motion.div
+            className="max-w-xl"
+            variants={slideIn('left')}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, margin: '-80px' }}
+          >
+            <Badge variant="outline" className="text-rose-600 border-rose-200 mb-4">Patients</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+              <RevealText>Book, cancel, stay informed.</RevealText>
             </h2>
-            <p className="mt-3 text-gray-500 text-lg">
+            <p className="mt-3 text-muted-foreground text-lg">
               No phone tag. No showing up to find the doctor is booked solid.
             </p>
-          </div>
-          <div className="mt-14 grid md:grid-cols-2 gap-12">
-            <div className="flex gap-5">
-              <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <CalendarCheck className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Book online</h3>
-                <p className="mt-1.5 text-gray-500 leading-relaxed">
-                  See real-time availability and pick a slot that works for you. No account needed to browse doctors.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-5">
-              <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <CalendarX className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Cancel anytime</h3>
-                <p className="mt-1.5 text-gray-500 leading-relaxed">
-                  Plans change. Cancel or reschedule online and free up the slot for someone else.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-5">
-              <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <Syringe className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">View medicine history</h3>
-                <p className="mt-1.5 text-gray-500 leading-relaxed">
-                  After your visit, see prescribed medicines and past prescriptions in your profile.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-5">
-              <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Appointment reminders</h3>
-                <p className="mt-1.5 text-gray-500 leading-relaxed">
-                  Get notified before your visit so you never miss a checkup.
-                </p>
-              </div>
-            </div>
+          </motion.div>
+          <div className="mt-14 grid md:grid-cols-2 gap-10">
+            {patientFeatures.map((f, i) => {
+              const vars = slideIn(f.dir, i * 0.1)
+              return (
+                <motion.div
+                  key={f.title}
+                  className="flex gap-5 group"
+                  variants={vars}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: false, margin: '-60px' }}
+                >
+                  <div className="shrink-0 w-12 h-12 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-center group-hover:border-rose-300 group-hover:bg-rose-100 group-hover:scale-110 group-hover:rotate-[4deg] transition-all duration-200">
+                    <f.icon className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <div className="pt-0.5">
+                    <h3 className="text-base font-semibold text-foreground">{f.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* For Doctors */}
-      <section className="bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-6 py-24 md:py-28">
-          <div className="max-w-xl">
-            <span className="text-sm font-semibold text-rose-600 uppercase tracking-widest">Doctors &amp; Staff</span>
-            <h2 className="mt-3 text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
-              Own your schedule.
+
+      <section className="bg-primary relative overflow-hidden">
+        <motion.div
+          className="absolute inset-0 bg-rose-700"
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: false }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          style={{ originX: 0 }}
+        />
+        <div className="relative z-10 max-w-5xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {stats.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                variants={scaleIn(i * 0.12)}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false }}
+              >
+                <div className="text-3xl md:text-4xl font-bold text-primary-foreground">
+                  <CountUp end={stat.end} suffix={stat.suffix} duration={2} />
+                </div>
+                <div className="mt-1 text-sm text-rose-200">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+      <section className="bg-muted/30 border-b border-border">
+        <div className="max-w-5xl mx-auto px-6 py-28 md:py-36">
+          <motion.div
+            className="max-w-xl"
+            variants={slideIn('right')}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, margin: '-80px' }}
+          >
+            <Badge variant="outline" className="text-rose-600 border-rose-200 mb-4">Doctors &amp; Staff</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+              <RevealText>Own your schedule.</RevealText>
             </h2>
-            <p className="mt-3 text-gray-500 text-lg">
+            <p className="mt-3 text-muted-foreground text-lg">
               Approve or decline appointment requests and keep your day manageable.
             </p>
-          </div>
-          <div className="mt-14 grid md:grid-cols-2 gap-12">
-            <div className="flex gap-5">
-              <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <ClipboardList className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Confirm requests</h3>
-                <p className="mt-1.5 text-gray-500 leading-relaxed">
-                  Review new bookings and confirm them with one click. Patients get notified instantly.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-5">
-              <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <CalendarX className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Cancel &amp; block slots</h3>
-                <p className="mt-1.5 text-gray-500 leading-relaxed">
-                  Need to close a time slot? Cancel with automatic patient notification.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-5">
-              <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <ShieldCheck className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Patient history at hand</h3>
-                <p className="mt-1.5 text-gray-500 leading-relaxed">
-                  View past visits, medicines prescribed, and medicare details before the patient walks in.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-5">
-              <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <Pill className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Prescribe digitally</h3>
-                <p className="mt-1.5 text-gray-500 leading-relaxed">
-                  Write prescriptions in the system. The pharmacy and patient get a copy automatically.
-                </p>
-              </div>
-            </div>
+          </motion.div>
+          <div className="mt-14 grid md:grid-cols-2 gap-10">
+            {doctorFeatures.map((f, i) => {
+              const vars = slideIn(f.dir, i * 0.1)
+              return (
+                <motion.div
+                  key={f.title}
+                  className="flex gap-5 group"
+                  variants={vars}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: false, margin: '-60px' }}
+                >
+                  <div className="shrink-0 w-12 h-12 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-center group-hover:border-rose-300 group-hover:bg-rose-100 group-hover:scale-110 group-hover:rotate-[4deg] transition-all duration-200">
+                    <f.icon className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <div className="pt-0.5">
+                    <h3 className="text-base font-semibold text-foreground">{f.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* Medicine & Medicare */}
-      <section className="bg-gray-50 border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-6 py-24 md:py-28">
-          <div className="max-w-xl">
-            <span className="text-sm font-semibold text-rose-600 uppercase tracking-widest">Medicines</span>
-            <h2 className="mt-3 text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
-              Full medicine lifecycle management.
+
+      <section className="h-[55vh] bg-[url('https://images.unsplash.com/photo-1584982751601-97dcc096659c?q=80&w=2072&auto=format&fit=crop')] bg-fixed bg-cover bg-center relative">
+        <div className="absolute inset-0 bg-black/45" />
+        <div className="relative z-10 h-full flex items-center justify-center px-6">
+          <motion.div
+            className="max-w-2xl text-center"
+            initial={{ opacity: 0, scale: 0.92 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: false }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
+          >
+            <p className="text-white text-xl md:text-3xl font-light italic leading-relaxed">
+              &ldquo;CarePlus transformed how we manage our clinic. Patients love the ease of booking.&rdquo;
+            </p>
+            <motion.p
+              className="mt-5 text-rose-300 text-sm font-medium"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: false }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              &mdash; Dr. Priya Sharma, City Medical Centre
+            </motion.p>
+          </motion.div>
+        </div>
+      </section>
+
+
+      <section className="bg-white border-b border-border">
+        <div className="max-w-5xl mx-auto px-6 py-28 md:py-36">
+          <motion.div
+            className="max-w-xl"
+            variants={slideIn('left')}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, margin: '-80px' }}
+          >
+            <Badge variant="outline" className="text-rose-600 border-rose-200 mb-4">Medicines</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+              <RevealText>Full medicine lifecycle management.</RevealText>
             </h2>
-            <p className="mt-3 text-gray-500 text-lg">
+            <p className="mt-3 text-muted-foreground text-lg">
               From procurement to prescription, track every medicine that moves through your clinic.
             </p>
-          </div>
+          </motion.div>
 
-          {/* Inventory Management */}
-          <div className="mt-16">
-            <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <Package className="w-5 h-5 text-rose-600" />
-              Inventory &amp; Stock
-            </h3>
-            <div className="mt-6 grid md:grid-cols-2 gap-8">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Package className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Live stock tracking</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Every tablet, capsule, syrup, and injection is tracked with current quantity, batch number, and
-                    supplier details. Stock updates automatically when a prescription is filled.
-                  </p>
-                </div>
+          {medGroups.map((group, gi) => (
+            <motion.div
+              key={group.title}
+              className="mt-16"
+              variants={fadeUp(gi * 0.1)}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: false, margin: '-60px' }}
+            >
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2 hover:translate-x-1 transition-transform duration-200">
+                <group.icon className="w-5 h-5 text-rose-600" />
+                {group.title}
+              </h3>
+              <div className="mt-6 grid md:grid-cols-2 gap-6">
+                {group.items.map((item, ii) => (
+                  <motion.div
+                    key={item.title}
+                    className="flex gap-4 group"
+                    variants={fadeUp(ii * 0.05)}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: false, margin: '-40px' }}
+                  >
+                    <div className="shrink-0 w-10 h-10 bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-center group-hover:border-rose-300 group-hover:bg-rose-100 group-hover:scale-110 group-hover:rotate-[4deg] transition-all duration-200">
+                      <item.icon className="w-5 h-5 text-rose-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground text-sm">{item.title}</h4>
+                      <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Low stock alerts</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Set minimum quantity thresholds per medicine. When stock dips below, the system sends an alert so
-                    you can reorder before you run out.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Archive className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Batch &amp; expiry tracking</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Record batch numbers and expiry dates for every shipment. Expired stock is flagged automatically
-                    and blocked from dispensing.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Building className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Supplier management</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Store supplier contacts, price lists, and lead times. Generate purchase orders directly from low
-                    stock alerts.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
-          {/* Medicine Categories */}
-          <div className="mt-16">
-            <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <Tag className="w-5 h-5 text-rose-600" />
-              Medicine Types &amp; Categories
-            </h3>
-            <div className="mt-6 grid md:grid-cols-2 gap-8">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Pill className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Tablets &amp; Capsules</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Track by strength (mg), dosage instructions, and package size. Supports strip, bottle, and blister
-                    pack units.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <FlaskConical className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Syrups &amp; Liquids</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Manage by volume (ml), concentration, and bottle quantity. Includes paediatric formulations and
-                    suspensions.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Syringe className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Injections &amp; IV fluids</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Track vials, ampoules, IV bags with batch tracking. Cold chain items can be flagged for
-                    temperature-sensitive storage.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Eye className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Topicals &amp; Other forms</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Creams, ointments, drops, inhalers, and patches &mdash; each with custom unit tracking and usage
-                    instructions.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Prescription & Safety */}
-          <div className="mt-16">
-            <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-rose-600" />
-              Prescriptions &amp; Safety
-            </h3>
-            <div className="mt-6 grid md:grid-cols-2 gap-8">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <ClipboardList className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Digital prescriptions</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Doctors prescribe with dosage, duration, and notes. The pharmacy fills from a live queue. Patients
-                    can download a PDF copy.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Search className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Medicine search</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Search by name, brand, category, or symptom. Results show available stock, alternatives, and
-                    pricing.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Interaction warnings</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Flag known drug-drug interactions and patient allergies at prescription time so nothing unsafe gets
-                    dispensed.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Tag className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Price &amp; margins</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Set MRP, purchase price, and retail price per medicine. Bills auto-calculate margins and display
-                    totals by medicare type.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Medicare Coverage */}
-          <div className="mt-16">
-            <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-rose-600" />
-              Medicare &amp; Billing
-            </h3>
-            <div className="mt-6 grid md:grid-cols-2 gap-8">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <ShieldCheck className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Coverage types</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Supports cash, private insurance, Ayushman Bharat, CGHS, ESI, and state schemes. Each has
-                    configurable coverage rules and claim forms.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <CalendarCheck className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Visit-linked billing</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Bills are generated per visit, linking consultation fees, medicines dispensed, and diagnostics.
-                    Each bill references the appointment and medicare type.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Claim &amp; reimbursement</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    Generate itemised bills suitable for insurance claims. Track which claims have been submitted and
-                    which are still pending.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <Archive className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Reports &amp; audit</h4>
-                  <p className="mt-1 text-gray-500 text-sm leading-relaxed">
-                    View medicine consumption reports, expiry loss summaries, billing by medicare type, and monthly
-                    revenue breakdowns.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <section className="bg-foreground relative overflow-hidden">
+        <motion.div
+          className="absolute top-0 right-0 w-96 h-96 bg-rose-600/5 rounded-full -translate-y-1/2 translate-x-1/2"
+          animate={{ scale: [1, 1.2, 1], rotate: [0, 5, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-0 left-0 w-64 h-64 bg-rose-600/5 rounded-full translate-y-1/2 -translate-x-1/2"
+          animate={{ scale: [1, 1.3, 1], rotate: [0, -5, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <div className="relative z-10 max-w-3xl mx-auto px-6 py-24 md:py-32 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-background tracking-tight">
+            <LetterReveal>Ready to simplify your clinic?</LetterReveal>
+          </h2>
+          <motion.p
+            className="mt-4 text-lg text-muted-foreground"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: false }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+          >
+            Join 40+ clinics already using CarePlus.
+          </motion.p>
+          <motion.div
+            className="mt-10"
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Button asChild size="lg" className="bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/25 hover:scale-[1.04] active:scale-[0.96] transition-all duration-150">
+              <Link to="/signup">
+                Get started free
+                <ArrowRight className="ml-1" />
+              </Link>
+            </Button>
+          </motion.div>
         </div>
       </section>
     </main>
