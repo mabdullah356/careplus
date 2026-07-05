@@ -1,4 +1,14 @@
 const DoctorProfile = require("../Models/doctorProfile.Model");
+const User = require("../Models/user.Model");
+
+module.exports.getAllDoctors = async (req, res) => {
+  try {
+    const doctors = await DoctorProfile.find().populate("userId", "name email");
+    return res.status(200).json({ doctors });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 module.exports.updateDoctorProfile = async (req, res) => {
   try {

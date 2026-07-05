@@ -33,13 +33,15 @@ module.exports.createAppointment = async (req, res) => {
       return res.status(409).json({ message: "This slot is already booked" });
     }
 
-    const appointment = await Appointment.create({
+    let appointment = await Appointment.create({
       patientId: patientProfile._id,
       doctorId,
       date,
       time,
       reason,
     });
+
+    appointment = await appointment.populate({ path: "doctorId", populate: { path: "userId", select: "name email" } });
 
     return res.status(201).json({
       message: "Appointment booked successfully",
@@ -60,7 +62,7 @@ module.exports.getAppointments = async (req, res) => {
         return res.status(404).json({ message: "Patient profile not found" });
       }
       appointments = await Appointment.find({ patientId: patientProfile._id })
-        .populate("doctorId")
+        .populate({ path: "doctorId", populate: { path: "userId", select: "name email" } })
         .sort({ createdAt: -1 });
     } else if (req.user.role === "doctor") {
       const doctorProfile = await DoctorProfile.findOne({ userId: req.user.id });
@@ -68,7 +70,7 @@ module.exports.getAppointments = async (req, res) => {
         return res.status(404).json({ message: "Doctor profile not found" });
       }
       appointments = await Appointment.find({ doctorId: doctorProfile._id })
-        .populate("patientId")
+        .populate({ path: "patientId", populate: { path: "userId", select: "name email" } })
         .sort({ createdAt: -1 });
     } else {
       return res.status(403).json({ message: "Access denied" });
@@ -90,7 +92,7 @@ module.exports.confirmAppointment = async (req, res) => {
       return res.status(404).json({ message: "Doctor profile not found" });
     }
 
-    const appointment = await Appointment.findOne({ _id: id, doctorId: doctorProfile._id });
+    let appointment = await Appointment.findOne({ _id: id, doctorId: doctorProfile._id });
 
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
@@ -102,6 +104,8 @@ module.exports.confirmAppointment = async (req, res) => {
 
     appointment.status = "confirmed";
     await appointment.save();
+
+    appointment = await appointment.populate({ path: "patientId", populate: { path: "userId", select: "name email" } });
 
     return res.status(200).json({ message: "Appointment confirmed", appointment });
   } catch (error) {
@@ -142,6 +146,12 @@ module.exports.cancelAppointment = async (req, res) => {
 
     appointment.status = "cancelled";
     await appointment.save();
+
+    if (req.user.role === "patient") {
+      appointment = await appointment.populate({ path: "doctorId", populate: { path: "userId", select: "name email" } });
+    } else if (req.user.role === "doctor") {
+      appointment = await appointment.populate({ path: "patientId", populate: { path: "userId", select: "name email" } });
+    }
 
     return res.status(200).json({ message: "Appointment cancelled", appointment });
   } catch (error) {
